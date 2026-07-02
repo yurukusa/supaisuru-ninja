@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0203">
+<title>スパイスルニンジャゲーム</title>
+<meta name="description" content="でっかいおやしきで、けいさんでてきをたおして、にんじゃカードをあつめよう！">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- 屋敷探索中のHUD -->
+<div id="hud" class="hidden">
+  <div id="hud-floor"></div>
+  <div id="hud-streak"></div>
+  <div class="hud-btns">
+    <button id="btn-zukan" class="hud-btn" type="button">📖</button>
+    <button id="btn-emote" class="hud-btn hidden" type="button">🎭</button>
+    <button id="btn-mute" class="hud-btn" type="button">🔊</button>
+  </div>
+</div>
+
+<!-- ボス戦のHUD -->
+<div id="boss-hud" class="hidden">
+  <div id="tech-bar"></div>
+  <div id="tech-timer" class="hidden"><div id="tech-timer-fill"></div><span id="tech-timer-label"></span></div>
+  <div id="boss-hp-wrap"><div id="boss-name"></div><div id="boss-hp-bar"><div id="boss-hp-fill"></div></div></div>
+  <div id="hearts"></div>
+</div>
+
+<!-- スクリーンクス戦のキラ技バー -->
+<div id="kira-bar" class="hidden"></div>
+
+<!-- タイトル -->
+<div id="scr-title" class="screen hidden">
+  <div id="title-logo">
+    <span class="t-line1">スパイスル</span>
+    <span class="t-line2">ニンジャゲーム</span>
+  </div>
+  <div id="title-btns">
+    <button id="btn-continue" class="big-btn hidden" type="button">つづきから</button>
+    <button id="btn-start" class="big-btn" type="button">はじめる</button>
+    <button id="btn-zukan-title" class="big-btn small" type="button">📖 カードずかん</button>
+  </div>
+  <div id="title-credit">げんあん：6さいのにんじゃマスター</div>
+</div>
+
+<!-- クイズ -->
+<div id="scr-quiz" class="screen overlay hidden">
+  <div id="quiz-bubble"><span id="quiz-q"></span></div>
+  <div id="quiz-answers"></div>
+  <div id="quiz-feedback" class="hidden"></div>
+</div>
+
+<!-- カード入手 -->
+<div id="scr-card" class="screen overlay hidden">
+  <div id="card-get-label"></div>
+  <div id="card-obj" class="game-card"><div class="card-inner">
+    <div class="card-emoji"></div>
+    <div class="card-name"></div>
+    <div class="card-type"></div>
+  </div></div>
+  <button id="card-ok" class="big-btn" type="button">やったー！</button>
+</div>
+
+<!-- スタンプラリー -->
+<div id="scr-stamp" class="screen hidden">
+  <div class="stamp-title">スタンプラリー</div>
+  <div id="stamp-sheet"></div>
+  <div id="stamp-hint">スタンプをまるまでうごかそう！</div>
+  <div id="stamp-pad"><div id="stamp-tool">忍</div></div>
+  <button id="stamp-ok" class="big-btn hidden" type="button">つぎへ！</button>
+</div>
+
+<!-- カード図鑑 -->
+<div id="scr-zukan" class="screen hidden">
+  <div class="zukan-head">
+    <div id="zukan-count"></div>
+    <button id="zukan-close" class="hud-btn" type="button">✖</button>
+  </div>
+  <div id="zukan-grid"></div>
+</div>
+
+<!-- おはなし -->
+<div id="scr-story" class="screen overlay hidden">
+  <div id="story-box"><p id="story-text"></p><div id="story-next">▼ タップ</div></div>
+</div>
+
+<!-- まけた -->
+<div id="scr-lose" class="screen overlay hidden">
+  <div class="lose-face">😵</div>
+  <div class="lose-text">やられた〜！</div>
+  <button id="btn-retry" class="big-btn" type="button">もういちど！</button>
+</div>
+
+<!-- エンディング -->
+<div id="scr-ending" class="screen hidden">
+  <div id="ending-inner">
+    <div class="ending-title">🎉クリア！🎉</div>
+    <p id="ending-text"></p>
+    <div id="ending-stats"></div>
+    <button id="btn-ending-back" class="big-btn" type="button">おやしきにもどる</button>
+    <button id="btn-ending-reset" class="big-btn small" type="button">さいしょからあそぶ</button>
+  </div>
+</div>
+
+<!-- エモート選択 -->
+<div id="scr-emote" class="screen overlay hidden">
+  <div class="emote-title">エモートをえらぼう！</div>
+  <div id="emote-list"></div>
+  <button id="emote-close" class="big-btn small" type="button">とじる</button>
+</div>
+
+<div id="banner" class="hidden"></div>
+<div id="tap-fx"></div>
+
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
