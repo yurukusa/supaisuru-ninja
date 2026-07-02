@@ -24,4 +24,4 @@
 - [x] BGMをm4a化（iOS Safari対応）
 - [x] index.html / style.css / js/data.js / js/audio.js / js/ui.js / js/game.js
 - [x] Playwrightでスマホ視点テスト＋スクショ＋バグ修正
-- [ ] GitHubリポジトリ作成→Pages公開→実機URL確認スクショ
+- [x] GitHubリポジトリ作成→Pages公開→実機URL確認スクショ
