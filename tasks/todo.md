@@ -22,6 +22,6 @@
 ## 実装タスク
 - [x] アセット流用（ninja-mathとninja-hammerのスプライト・SFX・BGM）
 - [x] BGMをm4a化（iOS Safari対応）
-- [ ] index.html / style.css / js/data.js / js/audio.js / js/ui.js / js/game.js
-- [ ] Playwrightでスマホ視点テスト＋スクショ＋バグ修正
+- [x] index.html / style.css / js/data.js / js/audio.js / js/ui.js / js/game.js
+- [x] Playwrightでスマホ視点テスト＋スクショ＋バグ修正
 - [ ] GitHubリポジトリ作成→Pages公開→実機URL確認スクショ

@@ -63,15 +63,18 @@ function drawSheet(name, frame, x, y, h, { flip = false, alpha = 1 } = {}) {
   return true;
 }
 
-function drawMonster(name, x, y, h, { flip = false, bright = false } = {}) {
+// モンスター画像は16x16を4x4に並べたシート。frameで2ポーズ(縦方向)を切り替えて動かす。
+function drawMonster(name, x, y, h, { flip = false, bright = false, frame = 0 } = {}) {
   const im = IMGS[name];
   if (!im) return false;
+  const fs = 16;
+  const sy = (frame % 2) * fs * 2; // 0段目と2段目が同ポーズ、1段目と3段目がもう1ポーズ
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   if (bright) ctx.filter = 'brightness(2.6)';
   ctx.translate(x, y);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(im, -h / 2, -h, h, h);
+  ctx.drawImage(im, 0, sy, fs, fs, -h / 2, -h, h, h);
   ctx.restore();
   return true;
 }
@@ -176,7 +179,7 @@ const FLOOR_TINTS = [
 
 let bgTime = 0;
 const embers = [];
-function drawInterior(floorIdx, groundY) {
+function drawInterior(floorIdx, groundY, { noScroll = false } = {}) {
   const t = FLOOR_TINTS[clamp(floorIdx, 0, 4)];
   // 壁
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -191,15 +194,17 @@ function drawInterior(floorIdx, groundY) {
     ctx.fillRect(px - 20, groundY - H * 0.52 - 10, 40, 12);
   }
 
-  // 鬼の掛け軸
-  ctx.save();
-  ctx.globalAlpha = 0.85;
-  const sx = W * 0.5, sy = groundY - H * 0.5;
-  ctx.fillStyle = '#3d2b1f'; ctx.fillRect(sx - 34, sy, 68, H * 0.24);
-  ctx.fillStyle = '#e8dcc0'; ctx.fillRect(sx - 28, sy + 8, 56, H * 0.24 - 16);
-  ctx.font = `${Math.min(44, W * 0.09)}px sans-serif`; ctx.textAlign = 'center';
-  ctx.fillText('👹', sx, sy + H * 0.13);
-  ctx.restore();
+  // 鬼の掛け軸(ボス戦ではボスと重なるので描かない)
+  if (!noScroll) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    const sx = W * 0.5, sy = groundY - H * 0.5;
+    ctx.fillStyle = '#3d2b1f'; ctx.fillRect(sx - 34, sy, 68, H * 0.24);
+    ctx.fillStyle = '#e8dcc0'; ctx.fillRect(sx - 28, sy + 8, 56, H * 0.24 - 16);
+    ctx.font = `${Math.min(44, W * 0.09)}px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText('👹', sx, sy + H * 0.13);
+    ctx.restore();
+  }
 
   // 提灯(ゆらめく灯り)
   for (let i = 0; i < 3; i++) {
@@ -531,6 +536,8 @@ function mansionScene(opt = {}) {
   }
 
   return {
+    _ninja: ninja, _enemy: enemy,
+    get _mode() { return mode; },
     enter() {
       UI.hideAllScreens();
       UI.showHud(save.floor, streak, STREAK_NEED, save.kira.length > 0);
@@ -577,9 +584,11 @@ function mansionScene(opt = {}) {
         const anim = mode === 'quiz' ? 'enemy-attack' : 'enemy-idle';
         const fl = mode === 'quiz' ? enemy.x > ninja.x : enemy.dir < 0;
         drawSheet(anim, Math.floor(bgTime * (mode === 'quiz' ? 7 : 8)) % 10, enemy.x, gy, 96, { flip: fl });
-        // ？マーク
-        ctx.font = '26px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('❓', enemy.x, gy - 108 + Math.sin(bgTime * 4) * 4);
+        // ？マーク(出題中はポートレート側に出すので地上には出さない)
+        if (mode === 'explore') {
+          ctx.font = '26px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('❓', enemy.x, gy - 108 + Math.sin(bgTime * 4) * 4);
+        }
       }
       // 忍者
       if (mode === 'emote' && emote) {
@@ -604,6 +613,26 @@ function mansionScene(opt = {}) {
       if (mode === 'explore' && ninja.tx !== null && Math.abs(ninja.tx - ninja.x) > 8) {
         ctx.strokeStyle = '#ffd54a88'; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(ninja.tx, gy + 6, 12 + Math.sin(bgTime * 8) * 3, 0, Math.PI * 2); ctx.stroke();
+      }
+      // 出題中: 吹き出しがキャラを隠すので、敵の顔を上に大きく見せる
+      if (mode === 'quiz') {
+        ctx.fillStyle = 'rgba(5,1,2,0.45)'; ctx.fillRect(0, 0, W, H);
+        const px = W / 2, py = H * 0.28 + Math.sin(bgTime * 2.5) * 6;
+        const pr = Math.min(W, H) * 0.115;
+        const pg = ctx.createRadialGradient(px, py, pr * 0.4, px, py, pr * 2.2);
+        pg.addColorStop(0, 'rgba(255,80,30,0.25)'); pg.addColorStop(1, 'transparent');
+        ctx.fillStyle = pg;
+        ctx.beginPath(); ctx.arc(px, py, pr * 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1c0606';
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.beginPath(); ctx.arc(px, py, pr - 4, 0, Math.PI * 2); ctx.clip();
+        drawSheet('enemy-idle', Math.floor(bgTime * 8) % 10, px, py + pr * 0.92, pr * 1.85);
+        ctx.restore();
+        ctx.strokeStyle = '#ffd54a'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.stroke();
+        ctx.font = '38px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('❓', px + pr * 0.9, py - pr * 0.75 + Math.sin(bgTime * 4) * 4);
       }
     },
     down(x, y) { if (mode === 'explore') ninja.tx = x; },
@@ -695,6 +724,7 @@ function bossScene(floor) {
   function win() {
     over = true;
     mark.alive = false;
+    swing = null;
     UI.hideTechTimer();
     AudioMan.stopBgm();
     AudioMan.play('victory');
@@ -721,6 +751,7 @@ function bossScene(floor) {
     setTimeout(() => {
       awardCard(kira);
       AudioMan.play('bonus');
+      UI.hideBossHud();
       UI.showCardGet(kira, () => setScene(emoteShowScene(kira, () => {
         UI.showStampRally(save.stamps, floor - 1, () => {
           save.stamps[floor - 1] = true;
@@ -751,6 +782,9 @@ function bossScene(floor) {
   }
 
   return {
+    _mark: mark,
+    get _hp() { return hp; },
+    get _hearts() { return hearts; },
     enter() {
       UI.hideAllScreens(); UI.hideHud();
       AudioMan.bgm('boss', { volume: 0.5 });
@@ -801,7 +835,7 @@ function bossScene(floor) {
       if (swing) { swing.t += dt; if (swing.t > 0.45) swing = null; }
     },
     draw() {
-      drawInterior(clamp(floor - 1, 0, 4), H * 0.86);
+      drawInterior(clamp(floor - 1, 0, 4), H * 0.86, { noScroll: true });
       const gy = groundY();
       // ボス登場台座の妖気
       const ag = ctx.createRadialGradient(W / 2, gy - 40, 10, W / 2, gy - 40, 200);
@@ -818,7 +852,10 @@ function bossScene(floor) {
         ctx.font = '44px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText('❗', bx, by - size - 18 + Math.sin(bgTime * 20) * 4);
       }
-      drawMonster(boss.sprite, bx, by, size, { bright: telegraph > 0 && Math.floor(bgTime * 10) % 2 === 0 });
+      drawMonster(boss.sprite, bx, by, size, {
+        frame: Math.floor(bgTime * 3) % 2,
+        bright: telegraph > 0 && Math.floor(bgTime * 10) % 2 === 0,
+      });
 
       // 忍者(下で構えている)
       drawSheet(lungeT > 0 ? 'ninja-dead' : 'ninja-idle', lungeT > 0 ? 2 : Math.floor(bgTime * 8) % 10, W * 0.5, H * 0.86, 84);
@@ -1029,6 +1066,8 @@ function screenksScene() {
   }
 
   return {
+    get _hp() { return hp; },
+    get _hearts() { return hearts; },
     enter() {
       UI.hideAllScreens(); UI.hideHud();
       document.body.classList.add('screenks'); // キラ技バーと重ならないようハートを上げる
@@ -1233,6 +1272,13 @@ document.addEventListener('pointerdown', function first() {
   }
   document.removeEventListener('pointerdown', first);
 });
+
+// 自動テスト用の観測フック(ゲーム動作には影響しない)
+window.__SPN = {
+  get scene() { return scene; },
+  get save() { return save; },
+  get streak() { return streak; },
+};
 
 loadSave();
 loadImages().then(() => {
