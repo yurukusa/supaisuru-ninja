@@ -15,12 +15,78 @@ let W = 0, H = 0;
 
 function resize() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  W = window.innerWidth; H = window.innerHeight;
+  // innerWidth/innerHeightはピンチズーム中に「見えている範囲」へ縮み、
+  // タップ座標と描画座標がずれてボス戦のマークが押せなくなる。
+  // レイアウトビューポート(clientWidth/Height)はズームの影響を受けない。
+  W = document.documentElement.clientWidth;
+  H = document.documentElement.clientHeight;
   cv.width = W * dpr; cv.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 window.addEventListener('resize', resize);
 resize();
+
+// ---- ズーム対策 ----
+// 連打(ダブルタップ)やピンチで画面が拡大するのを防ぎ、
+// それでも拡大してしまったら自動で戻す+手動ボタンも出す。
+(function zoomGuard() {
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    // 350ms以内の2回目のタッチ終了=ダブルタップ拡大の芽。既にpointerdownは
+    // 発火済みなので、ここで止めてもゲーム操作には影響しない。
+    if (now - lastTouchEnd < 350 && e.cancelable) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) { if (e.cancelable) e.preventDefault(); return; } // ピンチ
+    // スクロールが必要なUIだけパンを許可する
+    if (!e.target.closest || !e.target.closest('#zukan-grid, #tech-bar, #emote-list, #scr-ending')) {
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault()));
+  document.addEventListener('dblclick', e => e.preventDefault());
+
+  const meta = document.querySelector('meta[name="viewport"]');
+  const BASE = meta.getAttribute('content');
+  let fixBtn = null;
+  function fixZoom() {
+    // viewportメタを付け替えるとSafari/Chromeが倍率1へ再適用する
+    meta.setAttribute('content', BASE + ', minimum-scale=1');
+    setTimeout(() => meta.setAttribute('content', BASE), 350);
+    window.scrollTo(0, 0);
+  }
+  function showFixBtn() {
+    if (!fixBtn) {
+      fixBtn = document.createElement('button');
+      fixBtn.id = 'zoom-fix';
+      fixBtn.type = 'button';
+      fixBtn.innerHTML = '🔍 がめんを　もとに　もどす';
+      fixBtn.addEventListener('pointerdown', () => {
+        fixZoom();
+        setTimeout(() => { if (window.visualViewport.scale <= 1.05) hideFixBtn(); }, 500);
+      });
+      document.body.appendChild(fixBtn);
+    }
+    fixBtn.style.display = 'block';
+  }
+  function hideFixBtn() { if (fixBtn) fixBtn.style.display = 'none'; }
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    let t = null;
+    vv.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        if (vv.scale > 1.05) {
+          fixZoom(); // まず自動復旧を試す
+          setTimeout(() => { vv.scale > 1.05 ? showFixBtn() : hideFixBtn(); }, 700);
+        } else hideFixBtn();
+      }, 250);
+    });
+  }
+})();
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -130,6 +196,7 @@ const defaultSave = () => ({
   kira: [],           // キラカード(なくならない)
   stamps: [false, false, false, false, false, false],
   screenksDefeated: false,
+  coachSeen: false,   // ボス戦のあそびかたコーチを見たか
 });
 let save = defaultSave();
 
@@ -663,6 +730,7 @@ function bossScene(floor) {
   let hearts = PLAYER_MAX_HEARTS;
   let t = 0;
   let over = false;
+  let paused = false; // コーチ表示中はボスの攻撃も時間切れも止める
 
   // 武器 = ハンマー + キラ + ノーマル持ちもの
   let weapon = { uid: 'hammer', type: 'hammer', emoji: '🔨', name: 'ハンマー' };
@@ -793,11 +861,29 @@ function bossScene(floor) {
       UI.updateBossHp(1);
       UI.updateHearts(hearts, PLAYER_MAX_HEARTS);
       UI.banner(`${boss.name}が　あらわれた！！`, 1800);
-      setTimeout(placeMark, 900);
+      if (!save.coachSeen) {
+        // 初回だけ、あそびかたを教えるコーチ画面
+        paused = true;
+        setTimeout(() => {
+          UI.showCoach(techs.length > 1, () => {
+            save.coachSeen = true;
+            persist();
+            paused = false;
+            placeMark();
+          });
+        }, 1100);
+      } else {
+        // 2回目からは短いバナーで思い出させる
+        setTimeout(() => UI.banner('マークを　タップして　たたけ！', 1500), 1900);
+        if (techs.length > 1) {
+          setTimeout(() => UI.banner('うえの　カードで　わざも　つかえるぞ！', 1600), 3550);
+        }
+        setTimeout(placeMark, 900);
+      }
     },
     update(dt) {
       t += dt;
-      if (over) return;
+      if (over || paused) return;
       if (mark.alive) mark.t += dt;
       if (!mark.alive) { markDelay -= dt; if (markDelay <= 0) { placeMark(); } }
 
@@ -1079,6 +1165,7 @@ function screenksScene() {
       UI.updateHearts(hearts, PLAYER_MAX_HEARTS);
       UI.showKiraBar(ownedKiras(), useKira);
       UI.banner('スクリーンクスモンスター！！', 2200);
+      setTimeout(() => UI.banner('したの　キラカードを　タップして　たたかえ！', 1900), 2350);
     },
     update(dt) {
       t += dt;

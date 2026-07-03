@@ -287,6 +287,22 @@ const UI = (() => {
   }
   function hideKiraBar() { hide('kira-bar'); }
 
+  // ---------- ボス戦コーチ(初回のみ) ----------
+  function showCoach(hasCards, onDone) {
+    show('scr-coach');
+    document.body.classList.add('coaching');
+    $('coach-cards').style.display = hasCards ? '' : 'none';
+    $('coach-hand').style.display = hasCards ? '' : 'none';
+    const btn = $('coach-ok');
+    const h = () => {
+      btn.removeEventListener('pointerdown', h);
+      hide('scr-coach');
+      document.body.classList.remove('coaching');
+      onDone();
+    };
+    btn.addEventListener('pointerdown', h);
+  }
+
   // ---------- エモート選択 ----------
   function showEmoteList(kiras, onPick, onClose) {
     show('scr-emote');
@@ -310,7 +326,7 @@ const UI = (() => {
     showHud, hideHud,
     showQuiz, hideQuiz,
     showCardGet, showStampRally, showZukan, showStory,
-    showBossHud, hideBossHud, setActiveTech, removeTech,
+    showBossHud, hideBossHud, setActiveTech, removeTech, showCoach,
     showTechTimer, updateTechTimer, hideTechTimer,
     updateBossHp, updateHearts,
     showKiraBar, hideKiraBar,

@@ -2,7 +2,7 @@
    配色テーマ：地獄の古いお屋敷（子供の指定）。
    深い黒赤＋提灯の橙＋和紙色。文字は6歳が読めるようひらがな中心・大きめ。 */
 
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 
 html, body {
   width: 100%; height: 100%;
@@ -504,6 +504,61 @@ body.screenks #hearts { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 11
   cursor: pointer;
 }
 .emote-btn:active { transform: scale(.95); }
+
+/* ---------- ボス戦コーチ ---------- */
+#scr-coach { background: rgba(4, 1, 2, .72); z-index: 22; }
+#coach-hand {
+  position: fixed;
+  top: 108px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 46px;
+  filter: drop-shadow(0 4px 6px #000);
+  animation: coachPoint 1s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes coachPoint { 0%,100% { transform: translate(-50%, 0) } 50% { transform: translate(-50%, -16px) } }
+#coach-box {
+  background: rgba(15, 3, 3, .94);
+  border: 3px solid #ffd54a;
+  border-radius: 20px;
+  padding: 24px 22px;
+  max-width: 88vw;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.7);
+}
+#coach-box p { font-size: clamp(17px, 5.2vw, 22px); line-height: 1.7; text-align: center; }
+#coach-box .coach-kira { color: #ffe082; }
+#coach-box .coach-warn { color: #ff8a80; font-size: clamp(14px, 4.2vw, 18px); }
+/* コーチ中は技バーを暗幕の上に持ち上げて光らせる。
+   HUDごと持ち上がるので、説明文と重なるボス名・HPバー・ハートは一時的に隠す */
+body.coaching #boss-hud { z-index: 24; }
+body.coaching #boss-hp-wrap,
+body.coaching #hearts { visibility: hidden; }
+body.coaching #tech-bar .tech-btn {
+  animation: coachGlow 1.1s ease-in-out infinite;
+}
+@keyframes coachGlow {
+  0%, 100% { box-shadow: 0 0 0 0 #ffd54a00; }
+  50% { box-shadow: 0 0 18px 5px #ffd54acc; }
+}
+
+/* ---------- ズーム復旧ボタン ---------- */
+#zoom-fix {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  font-family: inherit;
+  font-size: 17px;
+  color: #33150c;
+  background: linear-gradient(#fff9e0, #ffd54a);
+  border: 3px solid #7f0f0f;
+  border-radius: 999px;
+  padding: 12px 22px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.6);
+}
 
 /* ---------- バナー ---------- */
 #banner {
